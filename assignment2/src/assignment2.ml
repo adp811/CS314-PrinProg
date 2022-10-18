@@ -1,10 +1,20 @@
 open List
 
 let count123 l =
-  ((-1),(-1),(-1))
+  let rec search (a, b, c) lst = 
+    match lst with 
+    | [] -> (a, b, c)
+    | 1 :: t -> search (a + 1, b, c) t 
+    | 2 :: t -> search (a, b + 1, c) t 
+    | 3 :: t -> search (a, b, c + 1) t 
+    | _ :: t -> search (a, b, c) t 
+    in search (0, 0, 0) l;;
 
 let rec n_times (f, n, v) =
-  (f v)
+  if n <= 0 then
+    v
+  else 
+    n_times (f, n - 1, f v);;
 
 let buckets p l = 
   []
