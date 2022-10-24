@@ -16,21 +16,55 @@ let rec n_times (f, n, v) =
   else 
     n_times (f, n - 1, f v);;
 
+(* let rec bucket_helper_rev l acc =
+  match l with
+  |  [] -> acc
+  | (h::t) -> bucket_helper_rev t (h :: acc) *)
+
+let rec bucket_helper_append p va l = 
+  match l with 
+  | [] -> [[va]] (* create new list if empty or no eq match *)
+  | x :: xs -> 
+    match x with 
+    | h :: t -> 
+      match p va h with 
+      | true -> ((x @ [va]) :: xs)
+      | false -> (x :: (bucket_helper_append p va xs))
+
 let buckets p l = 
-  []
+  let rec fold f acc lst = 
+    match lst with 
+    | [] -> acc 
+    | h :: t -> fold f (f p h acc) t in
+  fold bucket_helper_append [] l;;
 
 let fib_tailrec n =
-  0
+  let rec aux i prev curr = 
+    if i = 0 then prev
+    else if i = 1 then curr
+    else aux (i - 1) (curr) (prev + curr) in
+  aux n 0 1;;
 
-let assoc_list lst =
+let assoc_list lst = 
   []
+    (* List.map (fun x -> 
+      (x, List.fold_left (fun acc y -> if y = x then acc + 1 else acc) 0 lst)) lst;; *)
 
-let ap fs args =
-  []
+let ap fs args = 
+  let lst = List.map (fun x -> List.map x args) fs in 
+    List.fold_left (fun acc x -> acc @ x) [] lst;;
 
 let maxl2 lst = 
-  (-1)
-
+  let maxl2_value = 
+    let pair = 
+      List.fold_left (fun (a, b) x -> 
+        if x > a then (x, a)
+        else if x > b then (a, x)
+        else (a, b)) ((-1), (-1)) lst in 
+    match pair with
+    | (a, b) -> a + b in
+  if maxl2_value <= 0 then 0 else maxl2_value;;
+  
 type 'a tree = Leaf | Node of 'a tree * 'a * 'a tree
 
 let rec insert tree x =
@@ -44,13 +78,14 @@ let rec insert tree x =
 let construct l =
   List.fold_left (fun acc x -> insert acc x) Leaf l
 
-
 let rec fold_inorder f acc t =
-  acc
+  match t with 
+  | Leaf -> acc
+  | Node (l, v, r) -> fold_inorder f (f (fold_inorder f acc l) v) r;;
 
 let levelOrder t =
   []
-
+        
 
 (********)
 (* Done *)
@@ -121,7 +156,10 @@ let main () =
   let _ =
     try
       assert (maxl2 [1;10;2;100;3;400] = 500)
+      ; assert (maxl2 [1] = 0)
       ; assert (maxl2 [] = 0)
+      ; assert (maxl2 [1;10;2;100;3;100] = 200)
+      ; assert (maxl2 [4;4;4;4;4;4] = 8)
       ; assert (maxl2 [1000;29;10;5;10000;100000] = 110000)
     with e -> (error_count := !error_count + 1; print_string ((Printexc.to_string e)^"\n")) in
 
@@ -129,6 +167,7 @@ let main () =
   let _ =
     try
       assert (fold_inorder (fun acc x -> acc @ [x]) [] (Node (Node (Leaf,1,Leaf), 2, Node (Leaf,3,Leaf))) = [1;2;3]);
+      assert (fold_inorder (fun acc x -> acc @ [x]) [] (Node (Leaf, 1, Leaf)) = [1]);
       assert (fold_inorder (fun acc x -> acc + x) 0 (Node (Node (Leaf,1,Leaf), 2, Node (Leaf,3,Leaf))) = 6)
     with e -> (error_count := !error_count + 1; print_string ((Printexc.to_string e)^"\n")) in
 
