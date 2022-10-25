@@ -16,11 +16,6 @@ let rec n_times (f, n, v) =
   else 
     n_times (f, n - 1, f v);;
 
-(* let rec bucket_helper_rev l acc =
-  match l with
-  |  [] -> acc
-  | (h::t) -> bucket_helper_rev t (h :: acc) *)
-
 let rec bucket_helper_append p va l = 
   match l with 
   | [] -> [[va]] (* create new list if empty or no eq match *)
@@ -45,11 +40,24 @@ let fib_tailrec n =
     else aux (i - 1) (curr) (prev + curr) in
   aux n 0 1;;
 
-let assoc_list lst = 
-  []
-    (* List.map (fun x -> 
-      (x, List.fold_left (fun acc y -> if y = x then acc + 1 else acc) 0 lst)) lst;; *)
+let get_freq_tuple lst x =
+  List.fold_left (fun acc y -> if x = y then acc + 1 else acc) 0 lst
 
+let tuple_exists t_lst x =
+  List.fold_left (fun acc (a, b) -> if a = x then acc + 1 else acc) 0 t_lst
+
+let insert_tuple v t_lst lst = 
+  if (tuple_exists t_lst v) = 0 then (v, get_freq_tuple lst v) :: t_lst else t_lst
+  
+let assoc_list lst = 
+  let get_freq_tuple lst x =
+    List.fold_left (fun acc y -> if x = y then acc + 1 else acc) 0 lst in 
+    let tuple_exists t_lst x =
+      List.fold_left (fun acc (a, b) -> if a = x then acc + 1 else acc) 0 t_lst in 
+      let insert_tuple v t_lst lst = 
+        if (tuple_exists t_lst v) = 0 then (v, get_freq_tuple lst v) :: t_lst else t_lst in 
+  List.fold_left (fun acc x -> insert_tuple x acc lst) [] lst;;
+  
 let ap fs args = 
   let lst = List.map (fun x -> List.map x args) fs in 
     List.fold_left (fun acc x -> acc @ x) [] lst;;
