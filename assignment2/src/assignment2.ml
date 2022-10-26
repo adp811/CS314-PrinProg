@@ -39,15 +39,6 @@ let fib_tailrec n =
     else if i = 1 then curr
     else aux (i - 1) (curr) (prev + curr) in
   aux n 0 1;;
-
-let get_freq_tuple lst x =
-  List.fold_left (fun acc y -> if x = y then acc + 1 else acc) 0 lst
-
-let tuple_exists t_lst x =
-  List.fold_left (fun acc (a, b) -> if a = x then acc + 1 else acc) 0 t_lst
-
-let insert_tuple v t_lst lst = 
-  if (tuple_exists t_lst v) = 0 then (v, get_freq_tuple lst v) :: t_lst else t_lst
   
 let assoc_list lst = 
   let get_freq_tuple lst x =
@@ -91,10 +82,18 @@ let rec fold_inorder f acc t =
   | Leaf -> acc
   | Node (l, v, r) -> fold_inorder f (f (fold_inorder f acc l) v) r;;
 
-let levelOrder t =
-  []
-        
-
+let levelOrder t = 
+  let rec insert_level lst v lvl = 
+    if (List.length lst) = lvl then 
+      lst @ [[v]]
+    else  
+      List.mapi (fun i n_lst -> if i = lvl then n_lst @ [v] else n_lst) lst in 
+    let rec fold_preorder f acc tr lv =
+      match tr with
+      | Leaf -> acc
+      | Node (l, v, r) -> fold_preorder f (fold_preorder f (f acc v lv) l (lv + 1)) r (lv + 1) in
+      fold_preorder insert_level [] t 0;; 
+    
 (********)
 (* Done *)
 (********)
