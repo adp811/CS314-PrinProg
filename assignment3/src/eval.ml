@@ -85,6 +85,64 @@ let rec eval_expr (e : exp) (env : environment) : value =
       | Int_Val i, Int_Val j ->  Int_Val (i mod j)
       | _, _ -> raise TypeError)
 
+    | And (e1, e2) -> 
+      let r1 = eval_expr e1 env in
+      let r2 = eval_expr e2 env in
+      (match r1, r2 with 
+      | Bool_Val i, Bool_Val j ->  Bool_Val (i && j)
+      | _, _ -> raise TypeError)
+
+    | Or (e1, e2) -> 
+      let r1 = eval_expr e1 env in
+      let r2 = eval_expr e2 env in
+      (match r1, r2 with 
+      | Bool_Val i, Bool_Val j ->  Bool_Val (i || j)
+      | _, _ -> raise TypeError)
+    
+    | Not e1 -> 
+      let r1 = eval_expr e1 env in
+      (match r1 with 
+      | Bool_Val i ->  Bool_Val (not i)
+      | _ -> raise TypeError)
+
+    | Lt (e1, e2) -> 
+      let r1 = eval_expr e1 env in
+      let r2 = eval_expr e2 env in
+      (match r1, r2 with 
+      | Int_Val i, Int_Val j ->  
+        if i < j then Bool_Val true 
+        else Bool_Val false
+      | _, _ -> raise TypeError)
+
+    | Leq (e1, e2) -> 
+      let r1 = eval_expr e1 env in
+      let r2 = eval_expr e2 env in
+      (match r1, r2 with 
+      | Int_Val i, Int_Val j ->  
+        if i <= j then Bool_Val true 
+        else Bool_Val false
+      | _, _ -> raise TypeError)
+
+    | Eq (e1, e2) -> 
+      let r1 = eval_expr e1 env in
+      let r2 = eval_expr e2 env in
+      (match r1, r2 with 
+      | Int_Val i, Int_Val j -> 
+        if i = j then Bool_Val true 
+        else Bool_Val false
+      | Bool_Val i, Bool_Val j ->
+        if i = j then Bool_Val true
+        else Bool_Val false
+      | _, _ -> raise TypeError)
+
+    
+
+    
+
+    
+
+    
+
 (* evaluate a command in an environment *)
 let rec eval_command (c : com) (env : environment) : environment =
     []
