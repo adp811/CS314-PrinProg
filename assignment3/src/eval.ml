@@ -135,14 +135,78 @@ let rec eval_expr (e : exp) (env : environment) : value =
         else Bool_Val false
       | _, _ -> raise TypeError)
 
+    | Fun (p1, e1) -> 
+      Closure (env, p1, e1)
     
-
-    
-
-    
-
-    
+    | App (e1, e2) -> 
+      let r1 = eval_expr e1 env in
+      let r2 = eval_expr e2 env in
+      (match r1, r2 with 
+      | Closure (evn, x, e), v -> 
+        let evn_x = (x, v) :: evn in 
+        eval_expr e evn_x
+      | _, _ -> raise TypeError);;
 
 (* evaluate a command in an environment *)
 let rec eval_command (c : com) (env : environment) : environment =
-    []
+    match c with 
+    | Skip -> 
+      env
+
+    | Comp (c1, c2) -> 
+      let evn_c1 = eval_command c1 env in
+        eval_command c2 evn_c1
+
+    | Declare (d1, s1) ->
+      (match d1 with 
+      | Int_Type -> (s1, Int_Val 0) :: env
+      | Bool_Type -> (s1, Bool_Val false) :: env
+      | Lambda_Type -> (s1, Closure (env, "x", Var "x")) :: env)
+
+    | Assg (s1, e1) -> 
+      let r1 = eval_expr e1 env in
+      (match r1 with
+      | Int_Val i -> 
+        (match List.assoc_opt s1 env with
+        | None -> raise UndefinedVar
+        | Some v -> 
+          match v with 
+          | Int_Val j -> (s1, r1) :: env
+          | _ -> raise TypeError)
+      | Bool_Val b -> 
+        (match List.assoc_opt s1 env with
+        | None -> raise UndefinedVar
+        | Some v -> 
+          match v with 
+          | Bool_Val c -> (s1, r1) :: env
+          | _ -> raise TypeError)
+      
+      | Closure (evn_r, x_r, e_r) -> 
+        (match List.assoc_opt s1 env with
+        | None -> raise UndefinedVar
+        | Some v -> 
+          match v with 
+          | Closure (evn_v, x_v, e_v) -> (s1, r1) :: env
+          | _ -> raise TypeError))
+
+    | Cond (ge1, c1, c2) ->
+      (match eval_expr ge1 env with 
+      | Bool_Val true -> eval_command c1 env
+      | Bool_Val false -> eval_command c2 env
+      | _ -> raise TypeError)
+      
+    | While (ge1, c1) -> 
+      (match eval_expr ge1 env with
+      | Bool_Val true -> eval_command c (eval_command c1 env)
+      | Bool_Val false -> env
+      | _ -> raise TypeError) 
+
+    | For (ge1 , c1) -> 
+      (match eval_expr ge1 env with
+      | Int_Val i when i <= 0 -> env
+      | Int_Val j -> 
+        let rec fold_n n f acc = 
+          if n <= 0 then acc 
+          else fold_n (n - 1) f (f c1 acc)
+        in fold_n j eval_command env
+      | _ -> raise TypeError);; 
