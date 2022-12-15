@@ -45,6 +45,7 @@ class Interpreter:
 	The result must be saved in a Python set. The type of each element (a Prolog Variable)
 	in the set is Variable.
 	'''
+
 	def variables_of_term (self, t : Term) -> set :
 		
 		res = []
@@ -56,13 +57,26 @@ class Interpreter:
 				if isinstance(tm, Variable):
 					res.append(tm)
 
-		print(set(res))
+		return set(res)
 
-		return []
 
 	def variables_of_clause (self, c : Rule) -> set :
-		return set()
+		
+		res = []
 
+		if isinstance(c, Rule):  # c is a Rule
+			for tm_h in c.head.terms:
+				if isinstance(tm_h, Variable):
+					res.append(tm_h)
+			
+			if isinstance(c.body, RuleBody): # type check body attr
+				if (c.body.terms != []): 
+					for f in c.body.terms:
+						for tm_bf in f.terms:
+							if isinstance(tm_bf, Variable):
+								res.append(tm_bf)
+
+		return set(res)
 
 	'''
 	Problem 2
