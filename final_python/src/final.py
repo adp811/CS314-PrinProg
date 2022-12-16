@@ -50,9 +50,9 @@ class Interpreter:
 		
 		res = []
 
-		if isinstance(t, Variable):	 # t is a Variable
+		if isinstance(t, Variable):	 
 			res.append(t)			
-		elif isinstance(t, Function):
+		elif isinstance(t, Function): 
 			for tm in t.terms:
 				if isinstance(tm, Variable):
 					res.append(tm)
@@ -64,16 +64,16 @@ class Interpreter:
 		
 		res = []
 
-		if isinstance(c, Rule):  # c is a Rule
+		if isinstance(c, Rule):  
 			for tm_h in c.head.terms:
-				if isinstance(tm_h, Variable):
+				if isinstance(tm_h, Variable): 
 					res.append(tm_h)
 			
-			if isinstance(c.body, RuleBody): # type check body attr
+			if isinstance(c.body, RuleBody):
 				if (c.body.terms != []): 
 					for f in c.body.terms:
 						for tm_bf in f.terms:
-							if isinstance(tm_bf, Variable):
+							if isinstance(tm_bf, Variable): 
 								res.append(tm_bf)
 
 		return set(res)
@@ -90,12 +90,52 @@ class Interpreter:
 
 	Please use Python dictionary to represent a subsititution map.
 	'''
+
 	def substitute_in_term (self, s : dict, t : Term) -> Term:
-		return t
+		if isinstance(t, Function):
+			new_terms = []
+			for tm in t.terms:
+				if tm in s:
+					new_terms.append(s[tm])		
+				else:
+					new_terms.append(tm)
+	
+			return Function(t.relation, new_terms)
+
+		elif isinstance(t, Variable):
+			if t in s:
+				return s[t]
+			else:
+				return Variable(t.value)
+
+		return t # should not reach here
+
 
 	def substitute_in_clause (self, s : dict, c : Rule) -> Rule:
-		return c
-
+		if isinstance(c, Rule):
+			new_terms_h = []
+			for tm_h in c.head.terms:
+				if tm_h in s:
+					new_terms_h.append(s[tm_h])
+				else:
+					new_terms_h.append(tm_h)
+			
+			if isinstance(c.body, RuleBody):
+				new_terms_body = []
+				if c.body.terms != []:
+					for bf in c.body.terms:
+						new_terms_bf = []
+						for tm_bf in bf.terms:
+							if tm_bf in s:
+								new_terms_bf.append(s[tm_bf])
+							else:
+								new_terms_bf.append(tm_bf)
+						
+						new_terms_body.append(Function(bf.relation, new_terms_bf))
+			
+				return Rule((Function(c.head.relation, new_terms_h)), RuleBody(new_terms_body))
+			
+		return c # should not reach here
 
 	'''
 	Problem 3
