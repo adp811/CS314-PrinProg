@@ -23,6 +23,7 @@ class Interpreter:
 	Please see the lecture note Control in Prolog to revisit the concept of
 	occurs-check.
 	'''
+
 	def occurs_check (self, v : Variable, t : Term) -> bool:
 		if isinstance(t, Variable):
 			return v == t
@@ -32,7 +33,6 @@ class Interpreter:
 					return True
 			return False
 		return False
-
 
 	'''
 	Problem 1
@@ -58,7 +58,6 @@ class Interpreter:
 					res.append(tm)
 
 		return set(res)
-
 
 	def variables_of_clause (self, c : Rule) -> set :
 		
@@ -110,7 +109,6 @@ class Interpreter:
 
 		return t # should not reach here
 
-
 	def substitute_in_clause (self, s : dict, c : Rule) -> Rule:
 		if isinstance(c, Rule):
 			new_terms_h = []
@@ -149,14 +147,50 @@ class Interpreter:
 
 	Please use Python dictionary to represent a subsititution map.
 	'''
-	def unify (self, t1: Term, t2: Term) -> dict:
-		return {}
 
+	def unify (self, t1: Term, t2: Term) -> dict:
+		def unify_helper (X: Term, Y: Term, substt_dict):
+
+			X = self.substitute_in_term(substt_dict, X)
+			Y = self.substitute_in_term(substt_dict, Y)
+
+			if isinstance(X, Variable) and (X not in self.variables_of_term(Y)):
+				# replace X with Y in the substitution terms of 𝜃, add X/Y to 𝜃
+				for key in substt_dict:
+					substt_dict[key] = self.substitute_in_term({X:Y}, substt_dict[key])
+	
+				substt_dict[X] = Y	
+				return substt_dict
+
+			elif isinstance(Y, Variable) and (Y not in self.variables_of_term(X)):
+				# replace Y with X in the substitution terms of 𝜃 add Y/X to 𝜃
+				for key in substt_dict:
+					substt_dict[key] = self.substitute_in_term({Y:X}, substt_dict[key])
+
+				substt_dict[Y] = X
+				return substt_dict
+
+			elif ((isinstance(X, Variable) and isinstance(Y, Variable)) or (isinstance(X, Number) and isinstance(Y, Number))
+					or (isinstance(X, Atom) and isinstance(Y, Atom))) and (X.value == Y.value):
+				return substt_dict
+
+			elif isinstance(X, Function) and isinstance(Y, Function):
+				itr = [(t_x, t_y) for t_x, t_y in zip(X.terms, Y.terms)]
+				for t_x, t_y in itr:
+					substt_dict = unify_helper(t_x, t_y, substt_dict)
+
+				return substt_dict
+
+			else:
+				raise Not_unifiable()
+
+		return unify_helper(t1, t2, {})
 
 	fresh_counter = 0
 	def fresh(self) -> Variable:
 		self.fresh_counter += 1
 		return Variable("_G" + str(self.fresh_counter))
+
 	def freshen(self, c: Rule) -> Rule:
 		c_vars = self.variables_of_clause(c)
 		theta = {}
@@ -164,7 +198,6 @@ class Interpreter:
 			theta[c_var] = self.fresh()
 
 		return self.substitute_in_clause(theta, c)
-
 
 	'''
 	Problem 4
@@ -178,9 +211,9 @@ class Interpreter:
 	The function returns a list of Terms (results), which is an instance of the original goal and is
 	a logical consequence of the program. See the tests cases (in src/main.py) as examples.
 	'''
+
 	def nondet_query (self, program : List[Rule], pgoal : List[Term]) -> List[Term]:
 		return []
-
 
 	'''
 	Challenge Problem
@@ -194,5 +227,6 @@ class Interpreter:
 	If the given goal is not a logical consequence of the program, then the result
 	is an empty list. See the test cases (in src/main.py) as examples.
 	'''
+	
 	def det_query (self, program : List[Rule], pgoal : List[Term]) -> List[List[Term]]:
 		return [pgoal]
