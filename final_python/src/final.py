@@ -49,7 +49,6 @@ class Interpreter:
 	def variables_of_term (self, t : Term) -> set :
 		
 		res = []
-
 		if isinstance(t, Variable):	 
 			res.append(t)			
 		elif isinstance(t, Function): 
@@ -62,7 +61,6 @@ class Interpreter:
 	def variables_of_clause (self, c : Rule) -> set :
 		
 		res = []
-
 		if isinstance(c, Rule):  
 			for tm_h in c.head.terms:
 				if isinstance(tm_h, Variable): 
@@ -94,46 +92,29 @@ class Interpreter:
 		if isinstance(t, Function):
 			new_terms = []
 			for tm in t.terms:
-				if tm in s:
-					new_terms.append(s[tm])		
-				else:
-					new_terms.append(tm)
-	
+				new_terms.append(self.substitute_in_term(s, tm))
 			return Function(t.relation, new_terms)
-
 		elif isinstance(t, Variable):
 			if t in s:
 				return s[t]
 			else:
 				return Variable(t.value)
 
-		return t # should not reach here
+		return t 
 
 	def substitute_in_clause (self, s : dict, c : Rule) -> Rule:
 		if isinstance(c, Rule):
-			new_terms_h = []
-			for tm_h in c.head.terms:
-				if tm_h in s:
-					new_terms_h.append(s[tm_h])
-				else:
-					new_terms_h.append(tm_h)
-			
+			new_term_h = self.substitute_in_term(s, c.head)
 			if isinstance(c.body, RuleBody):
 				new_terms_body = []
 				if c.body.terms != []:
 					for bf in c.body.terms:
-						new_terms_bf = []
-						for tm_bf in bf.terms:
-							if tm_bf in s:
-								new_terms_bf.append(s[tm_bf])
-							else:
-								new_terms_bf.append(tm_bf)
-						
-						new_terms_body.append(Function(bf.relation, new_terms_bf))
+						new_term_bf = self.substitute_in_term(s, bf)
+						new_terms_body.append(new_term_bf)
 			
-				return Rule((Function(c.head.relation, new_terms_h)), RuleBody(new_terms_body))
+				return Rule(new_term_h, RuleBody(new_terms_body))
 			
-		return c # should not reach here
+		return c 
 
 	'''
 	Problem 3
@@ -154,7 +135,7 @@ class Interpreter:
 			X = self.substitute_in_term(substt_dict, X)
 			Y = self.substitute_in_term(substt_dict, Y)
 
-			if isinstance(X, Variable) and (X not in self.variables_of_term(Y)):
+			if isinstance(X, Variable) and self.occurs_check(X, Y) == False:
 				# replace X with Y in the substitution terms of 𝜃, add X/Y to 𝜃
 				for key in substt_dict:
 					substt_dict[key] = self.substitute_in_term({X:Y}, substt_dict[key])
@@ -162,7 +143,7 @@ class Interpreter:
 				substt_dict[X] = Y	
 				return substt_dict
 
-			elif isinstance(Y, Variable) and (Y not in self.variables_of_term(X)):
+			elif isinstance(Y, Variable) and self.occurs_check(Y, X) == False:
 				# replace Y with X in the substitution terms of 𝜃 add Y/X to 𝜃
 				for key in substt_dict:
 					substt_dict[key] = self.substitute_in_term({Y:X}, substt_dict[key])
@@ -174,11 +155,10 @@ class Interpreter:
 					or (isinstance(X, Atom) and isinstance(Y, Atom))) and (X.value == Y.value):
 				return substt_dict
 
-			elif isinstance(X, Function) and isinstance(Y, Function):
+			elif (isinstance(X, Function) and isinstance(Y, Function)) and (X.relation == Y.relation) and (len(X.terms) == len(Y.terms)):
 				itr = [(t_x, t_y) for t_x, t_y in zip(X.terms, Y.terms)]
 				for t_x, t_y in itr:
 					substt_dict = unify_helper(t_x, t_y, substt_dict)
-
 				return substt_dict
 
 			else:
@@ -213,7 +193,30 @@ class Interpreter:
 	'''
 
 	def nondet_query (self, program : List[Rule], pgoal : List[Term]) -> List[Term]:
-		return []
+		while True:
+			G = pgoal.copy()
+			resolvent = G.copy()
+
+			while(resolvent != []):
+				theta = {}
+				goal_A = random.choice(resolvent)
+				clause_A = random.choice(program)
+
+				try:
+					clause_A_fresh = self.freshen(clause_A)
+					theta = self.unify(goal_A, clause_A_fresh.head)
+				
+				except Not_unifiable:
+					break
+
+				resolvent.remove(goal_A)
+				resolvent = resolvent + clause_A_fresh.body.terms
+
+				resolvent = [self.substitute_in_term(theta, tm) for tm in resolvent]
+				G = [self.substitute_in_term(theta, tm) for tm in G]
+
+			if (resolvent == []):
+				return G
 
 	'''
 	Challenge Problem
@@ -229,4 +232,40 @@ class Interpreter:
 	'''
 	
 	def det_query (self, program : List[Rule], pgoal : List[Term]) -> List[List[Term]]:
-		return [pgoal]
+		sol = []
+		def dfs (resolvent, goal, solutions):
+			if resolvent == []:
+				solutions.append(goal)
+				return
+			
+			while(resolvent != []):
+				chosen_goal = resolvent[0]
+
+				for rl in program:
+					theta = {}
+					rl_fresh = self.freshen(rl)
+					try:
+						theta = self.unify(chosen_goal, rl_fresh.head)
+
+					except Not_unifiable:
+						continue
+
+					new_resolvent = resolvent.copy()
+					new_goal = goal.copy()
+
+					new_resolvent.remove(chosen_goal)
+
+					if (rl_fresh.body.terms != []):
+						new_resolvent = rl_fresh.body.terms + new_resolvent
+					
+					new_resolvent = [self.substitute_in_term(theta, tm) for tm in new_resolvent]
+					new_goal = [self.substitute_in_term(theta, tm) for tm in new_goal]
+
+					dfs(new_resolvent, new_goal, solutions)
+				
+				if resolvent != []:
+					return
+
+		dfs(pgoal.copy(), pgoal.copy(), sol)
+		
+		return sol
